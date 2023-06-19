@@ -10,10 +10,20 @@ node {
         stage('Manual Approval') {
             input message: 'Lanjutkan ke tahap Deploy?'
         }
-        stage('Deploy') {
-            sh './jenkins/scripts/deliver.sh'
-            sleep(time: 1, unit: 'MINUTES')
-            sh './jenkins/scripts/kill.sh'
+        stage('Build Image') {
+            withCredentials([usernamePassword(credentialsId: 'docker-hub-repo', passwordVariable: 'PASS', usernameVariable: 'USER')]) {
+                sh 'docker build -t jennykibiri/sample-react-app .'
+                sh "echo $PASS | docker login -u $USER --password-stdin"
+                sh 'docker push jennykibiri/sample-react-app'
+            }
+        }
+        stage ('Deploy') {
+            script {
+                def dockerCmd = 'docker run  -p 3000:3000 -d jennykibiri/sample-react-app:latest'
+                sshagent(['ec2-server-key']) {
+                    sh "ssh -o StrictHostKeyChecking=no ec2-user@3.92.144.96 ${dockerCmd}"
+                }
+            }
         }
     }
 }
