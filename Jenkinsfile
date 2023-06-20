@@ -29,47 +29,24 @@
 // }
 
 pipeline {
-    agent any
-    tools {
-        nodejs 'Nodejs'
+    agent {
+        docker {
+            image 'node:lts-buster-slim'
+            args '-p 3000:3000'
+        }
     }
-    parameters {
-        choice(name:'VERSION', choices:['1.0', '1.1', '1.2'], description:'Choose the version of the project')
-
-        booleanParam(name :'executeTests', description:'Execute the tests', defaultValue:false)
+    environment {
+        CI = 'true'
     }
-
     stages {
         stage('Build') {
             steps {
                 sh 'npm install'
-                // sh 'npm run build'
             }
         }
         stage('Test') {
             steps {
-                // sh 'npm run test'
-                echo "Test"
-
-            }
-        }
-        stage('Build Image') {
-            steps {
-                withCredentials([usernamePassword(credentialsId: 'docker-hub-repo', passwordVariable: 'PASS', usernameVariable: 'USER')]) {
-                    sh 'docker build -t elvirareza/sample-react-app .'
-                    sh "echo $PASS | docker login -u $USER --password-stdin"
-                    sh 'docker push elvirareza/sample-react-app'
-                }
-            }
-        }
-        stage ('Deploy') {
-            steps {
-                script {
-                    def dockerCmd = 'docker run  -p 3000:3000 -d elvirareza/sample-react-app:latest'
-                    sshagent(['ec2-server-key']) {
-                        sh "ssh -o StrictHostKeyChecking=no ubuntu@54.179.7.244 ${dockerCmd}"
-                    }
-                }
+                sh './jenkins/scripts/test.sh'
             }
         }
     }
