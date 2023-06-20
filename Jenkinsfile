@@ -36,5 +36,19 @@ node {
         stage('Test') {
             sh './jenkins/scripts/test.sh'
         }
+        stage('Manual Approval') {
+            input message: 'Lanjutkan ke tahap Deploy?'
+        }
+        stage('Deploy') {
+            withCredentials([usernamePassword(credentialsId: 'docker-hub-repo', passwordVariable: 'PASS', usernameVariable: 'USER')]) {
+                sh 'docker build -t elvirareza/react-app .'
+                sh "echo $PASS | docker login -u $USER --password-stdin"
+                sh 'docker push elvirareza/react-app'
+            }
+            def dockerCmd = 'docker run  -p 3000:3000 -d elvirareza/react-app:latest'
+            sshagent(['ec2-server-key']) {
+                sh "ssh -o StrictHostKeyChecking=no ubuntu@18.140.56.7 ${dockerCmd}"
+            }
+        }
     }
 }
