@@ -39,7 +39,8 @@ node {
         stage('Manual Approval') {
             input message: 'Lanjutkan ke tahap Deploy?'
         }
-        stage('Deploy') {
+    }
+    stage('Deploy') {
             withCredentials([usernamePassword(credentialsId: 'docker-hub-repo', passwordVariable: 'PASS', usernameVariable: 'USER')]) {
                 sh 'docker build -t elvirareza/react-app .'
                 sh "echo $PASS | docker login -u $USER --password-stdin"
@@ -50,5 +51,4 @@ node {
                 sh "ssh -o StrictHostKeyChecking=no ubuntu@18.140.56.7 ${dockerCmd}"
             }
         }
-    }
 }
